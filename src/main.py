@@ -1,39 +1,50 @@
 import time
 from fastapi import FastAPI
 from sqlalchemy.exc import OperationalError
-from src.core.database import engine, Base
-from src.core import models
+from apscheduler.schedulers.background import BackgroundScheduler # This line should now work
+from src.core.database import engine, Base, SessionLocal
+from src.ingestion.pipeline import ETLPipeline
 from src.api.routes import router as api_router
 
 app = FastAPI(title="Kasparro Backend Assignment")
-
-# Register the routes
 app.include_router(api_router)
+
+def run_etl_job():
+    print("--- ⏰ CRON TRIGGER: Starting Scheduled ETL ---")
+    db = SessionLocal()
+    try:
+        pipeline = ETLPipeline(db)
+        pipeline.run()
+    except Exception as e:
+        print(f"Cron Error: {e}")
+    finally:
+        db.close()
 
 @app.on_event("startup")
 def startup_event():
-    """
-    On startup, try to create tables. 
-    If DB is not ready, wait 2 seconds and try again.
-    Keep trying until successful.
-    """
+    # Database connection wait loop
     print("Starting up... connecting to database...")
     while True:
         try:
-            # Try to create tables to verify connection
             Base.metadata.create_all(bind=engine)
-            print("--- SUCCESS: Database connected & Tables created ---")
-            break # Exit the loop if successful
+            break
         except OperationalError:
-            print("Database not ready yet... waiting 3 seconds.")
             time.sleep(3)
-        except Exception as e:
-            print(f"Unexpected error: {e}")
+        except Exception:
             time.sleep(3)
+            
+    # Start the Scheduler
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(run_etl_job, 'interval', hours=1)
+    scheduler.start()
+    print("--- Scheduler Started ---")
+    
+    # Run once immediately so you see data right away
+    run_etl_job()
 
 @app.get("/")
 def read_root():
-    return {"message": "System is running!"}
+    return {"message": "System is running on Render!"}
 
 @app.get("/health")
 def health_check():
