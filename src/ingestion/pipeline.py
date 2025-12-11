@@ -128,31 +128,38 @@ class ETLPipeline:
             print(f"CoinGecko Exception: {e}")
 
     def _fetch_local_csv(self):
-        print("Processing Mock CSV...")
-        # Since we don't have a real file upload, we simulate reading a CSV string
-        csv_content = """id,coin,price,date
-csv_1,BitCoin_Legacy,95000,2025-12-01
-csv_2,Ether_Legacy,3500,2025-12-01"""
-        
-        # In production, you would use: df = pd.read_csv("path/to/file.csv")
-        df = pd.read_csv(io.StringIO(csv_content))
-        
-        for _, row in df.iterrows():
-            # A. Save Raw
-            raw = RawDataCSV(raw_row_content=row.to_dict())
-            self.db.add(raw)
+        print("Processing Local CSV File...")
+        try:
+            # FIX: Read from the actual file system, not a hardcoded string
+            file_path = "data/legacy.csv"
             
-            # B. Normalize
-            self._upsert_unified(
-                source="LegacyCSV",
-                original_id=row['id'],
-                title=row['coin'],
-                content="Legacy Data Archive",
-                price=row['price'],
-                date_obj=datetime.now()
-            )
-        self.db.commit()
+            # Check if file exists to avoid crashing
+            import os
+            if not os.path.exists(file_path):
+                print(f"Warning: {file_path} not found. Skipping CSV source.")
+                return
 
+            df = pd.read_csv(file_path)
+            
+            for _, row in df.iterrows():
+                # A. Save Raw
+                raw = RawDataCSV(raw_row_content=row.to_dict())
+                self.db.add(raw)
+                
+                # B. Normalize
+                self._upsert_unified(
+                    source="LegacyCSV",
+                    original_id=str(row['id']),
+                    title=str(row['coin']),
+                    content="Legacy Data Archive",
+                    price=float(row['price']),
+                    date_obj=datetime.now()
+                )
+            self.db.commit()
+            print("CSV Ingestion Complete.")
+            
+        except Exception as e:
+            print(f"CSV Ingestion Failed: {e}")
 if __name__ == "__main__":
     db = SessionLocal()
     pipeline = ETLPipeline(db)

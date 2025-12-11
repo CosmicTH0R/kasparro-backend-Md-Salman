@@ -79,7 +79,7 @@ Prerequisites
 Steps :
 
 1.Clone the repository:
-git clone [https://github.com/](https://github.com/)[YOUR_USERNAME]/kasparro-backend-firstname-lastname.git
+git clone https://github.com/CosmicTH0R/kasparro-backend-Md-Salman.git
 cd kasparro-backend-firstname-lastname
 
 2.Start the System:
@@ -102,8 +102,8 @@ make down
 ☁️ Cloud Deployment
 
 The system is deployed and live on Render.
-->Live API URL: [PASTE_YOUR_RENDER_URL_HERE]/data
-->Live Stats: [PASTE_YOUR_RENDER_URL_HERE]/stats
+- **Live API URL:** `https://kasparro-api-xyz.onrender.com/data`
+- **Live Stats:** `https://kasparro-api-xyz.onrender.com/stats`
 
 Automated Scheduling:
 The system uses APScheduler (BackgroundScheduler) running inside the application container to trigger the ETL pipeline every 1 hour automatically. This ensures the database is always up-to-date without external cron dependencies.
